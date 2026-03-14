@@ -304,3 +304,360 @@
 </html>
 
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aki-Aru | 長野・空席リアルタイムナビ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #060608; color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        .page { display: none; min-height: 100vh; padding-top: 70px; padding-bottom: 120px; width: 100%; }
+        .page.active { display: block; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .glass { background: rgba(24, 24, 27, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.1); }
+        .status-btn-active { border: 4px solid white !important; transform: scale(1.05); }
+        input, select, textarea { background: #18181b !important; border: 1px solid #3f3f46 !important; color: white !important; outline: none; -webkit-appearance: none; }
+        .orange-shadow { box-shadow: 0 10px 30px -10px rgba(234, 88, 12, 0.5); }
+    </style>
+</head>
+<body>
+
+    <!-- ナビゲーション -->
+    <nav class="fixed top-0 w-full z-50 bg-black/95 border-b border-white/5 h-16 flex items-center justify-between px-6">
+        <div class="flex items-center gap-2" onclick="location.reload()">
+            <div class="w-8 h-8 bg-orange-600 rounded flex items-center justify-center font-black italic shadow-lg shadow-orange-600/20">A</div>
+            <span class="font-black italic text-xl tracking-tighter uppercase">Aki-Aru</span>
+        </div>
+        <div id="auth-status" class="text-[9px] font-bold text-zinc-600 italic tracking-widest uppercase">Initializing...</div>
+    </nav>
+
+    <!-- LP / 料金プラン -->
+    <div id="page-landing" class="page active px-6 text-center">
+        <h1 class="text-6xl font-black italic mb-2 pt-10 tracking-tighter">Aki-Aru</h1>
+        <p class="text-orange-500 font-bold text-[10px] tracking-[0.4em] mb-12 italic uppercase opacity-80">Nagano Real-time Nav</p>
+        
+        <div class="bg-zinc-900/50 p-8 rounded-[40px] border border-white/10 mb-8 shadow-2xl backdrop-blur-sm">
+            <h2 class="text-orange-500 font-black mb-6 italic uppercase text-sm tracking-widest">Pricing Plan</h2>
+            <div class="space-y-4 text-left">
+                <div class="flex justify-between items-center p-5 bg-black/50 rounded-2xl border border-white/5">
+                    <span class="text-xs font-bold">一般飲食店</span>
+                    <div class="text-right">
+                        <span class="font-black italic text-orange-500 text-lg">¥1,500</span><span class="text-[8px] text-zinc-500 ml-1">/月</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center p-5 bg-black/50 rounded-2xl border border-white/5">
+                    <span class="text-xs font-bold">夜の飲食店</span>
+                    <div class="text-right">
+                        <span class="font-black italic text-orange-500 text-lg">¥2,500</span><span class="text-[8px] text-zinc-500 ml-1">/月</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button onclick="requestLocationAndStart()" class="w-full py-6 bg-orange-600 rounded-full font-black text-sm uppercase mb-4 orange-shadow active:scale-95 transition-all">空席を探す (GPS有効化)</button>
+        <button onclick="showPage('owner-apply')" class="w-full py-4 bg-zinc-900 rounded-full font-black text-[10px] border border-white/10 uppercase tracking-widest opacity-60">店舗登録・審査申込</button>
+    </div>
+
+    <!-- 出店申請 -->
+    <div id="page-owner-apply" class="page px-6">
+        <button onclick="showPage('landing')" class="mb-6 text-zinc-500 text-[10px] font-black uppercase tracking-widest"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+        <h2 class="text-3xl font-black italic mb-8 uppercase tracking-tighter">Registration</h2>
+        <div class="bg-zinc-900 rounded-[40px] p-8 space-y-6 border border-white/5 shadow-2xl">
+            <input type="text" id="reg-shop-name" class="w-full p-5 rounded-2xl text-sm font-bold" placeholder="店舗名を入力">
+            <input type="text" id="reg-address" class="w-full p-5 rounded-2xl text-sm font-bold" placeholder="正確な住所を入力">
+            
+            <div class="px-2">
+                <p class="text-[9px] font-black text-zinc-500 uppercase italic mb-3">書類アップロード（審査用）</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="h-32 bg-black/50 rounded-2xl border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center text-[8px] text-zinc-500 cursor-pointer overflow-hidden relative">
+                        <i class="fas fa-camera text-orange-600 mb-2 text-xl"></i>
+                        <span>営業許可証</span>
+                        <input type="file" accept="image/*" capture="environment" class="absolute inset-0 opacity-0" onchange="handleFileSelect(this, 'license')">
+                        <img class="hidden absolute inset-0 w-full h-full object-cover" id="preview-license">
+                    </label>
+                    <label class="h-32 bg-black/50 rounded-2xl border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center text-[8px] text-zinc-500 cursor-pointer overflow-hidden relative">
+                        <i class="fas fa-id-card text-orange-600 mb-2 text-xl"></i>
+                        <span>身分証明書</span>
+                        <input type="file" accept="image/*" capture="environment" class="absolute inset-0 opacity-0" onchange="handleFileSelect(this, 'id')">
+                        <img class="hidden absolute inset-0 w-full h-full object-cover" id="preview-id">
+                    </label>
+                </div>
+            </div>
+
+            <div class="bg-orange-600/5 p-4 rounded-2xl border border-orange-600/10">
+                <p class="text-[8px] text-zinc-400 leading-relaxed italic">※決済(Stripe)の実装は審査通過後に行います。</p>
+            </div>
+            
+            <button onclick="submitApplication()" class="w-full py-5 bg-white text-black rounded-full font-black text-xs uppercase shadow-xl active:scale-95 transition-all">上記内容で審査を申し込む</button>
+        </div>
+    </div>
+
+    <!-- ユーザー：メイン -->
+    <div id="page-user-main" class="page px-6">
+        <h2 class="text-4xl font-black italic text-center mb-12 pt-5 uppercase tracking-tighter">Search Category</h2>
+        <div class="grid gap-8">
+            <button onclick="showPage('user-list')" class="h-48 bg-zinc-900 rounded-[50px] flex flex-col items-center justify-center border border-white/5 relative active:scale-95 transition-all shadow-2xl">
+                <i class="fas fa-utensils text-5xl mb-4 text-orange-600"></i>
+                <span class="text-3xl font-black italic uppercase tracking-widest">ご飯</span>
+            </button>
+            <button onclick="showPage('user-list')" class="h-48 bg-zinc-900 rounded-[50px] flex flex-col items-center justify-center border border-white/5 relative active:scale-95 transition-all shadow-2xl">
+                <i class="fas fa-beer-mug-empty text-5xl mb-4 text-orange-600"></i>
+                <span class="text-3xl font-black italic uppercase tracking-widest">お酒</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ユーザー：リスト -->
+    <div id="page-user-list" class="page px-6">
+        <div class="flex justify-between items-end mb-10 pt-5">
+            <h3 class="text-4xl font-black italic uppercase tracking-tighter">Nearby</h3>
+            <p id="gps-status" class="text-[9px] font-black text-orange-500 italic border border-orange-500/30 px-2 py-1 rounded">GPS LOADING</p>
+        </div>
+        <div id="shop-container" class="space-y-8">
+            <!-- Loading State -->
+            <div class="text-center py-20">
+                <div class="inline-block w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p class="text-zinc-600 font-bold italic text-xs tracking-widest uppercase">Fetching Shops...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 店主：管理画面 -->
+    <div id="page-owner-main" class="page px-6">
+        <h2 class="text-4xl font-black italic text-center mb-10 pt-5 uppercase tracking-tighter">Owner Admin</h2>
+        <div class="bg-zinc-900 rounded-[50px] p-8 space-y-12 border border-white/5 shadow-2xl shadow-black">
+            <div class="space-y-6 text-center">
+                <p class="text-[10px] font-black text-zinc-500 uppercase italic tracking-[0.3em]">現在の空席状況</p>
+                <div class="grid grid-cols-3 gap-5 px-2">
+                    <button id="btn-ok" onclick="updateStatus('◯')" class="h-24 rounded-[30px] bg-green-500 text-black text-4xl font-black shadow-lg shadow-green-500/20 active:scale-90 transition-all">◯</button>
+                    <button id="btn-few" onclick="updateStatus('△')" class="h-24 rounded-[30px] bg-zinc-800 text-zinc-600 text-4xl font-black active:scale-90 transition-all">△</button>
+                    <button id="btn-full" onclick="updateStatus('✖︎')" class="h-24 rounded-[30px] bg-zinc-800 text-zinc-600 text-4xl font-black active:scale-90 transition-all">✖︎</button>
+                </div>
+            </div>
+            <div class="space-y-6">
+                <p class="text-[10px] font-black text-zinc-500 uppercase italic tracking-[0.3em] ml-4">お客様へのメッセージ</p>
+                <textarea id="owner-shout-input" maxlength="60" class="w-full p-8 rounded-[40px] text-sm font-bold h-40 leading-relaxed shadow-inner" placeholder="例：ただいまカウンター2席空いています！"></textarea>
+                <button onclick="saveOwnerUpdate()" id="update-btn" class="w-full py-6 bg-orange-600 text-white rounded-full font-black text-sm uppercase shadow-2xl orange-shadow active:scale-95 transition-all">状況をリアルタイム更新</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ボトムナビ -->
+    <div id="bottom-nav" class="fixed bottom-0 w-full glass h-28 hidden flex items-center justify-around px-10 z-50">
+        <button onclick="showPage('user-main')" class="flex flex-col items-center gap-2 text-orange-600">
+            <i class="fas fa-search text-2xl"></i>
+            <span class="text-[9px] font-black uppercase tracking-tighter">Search</span>
+        </button>
+        <button onclick="showPage('owner-main')" class="flex flex-col items-center gap-2 text-zinc-600">
+            <i class="fas fa-store-alt text-2xl"></i>
+            <span class="text-[9px] font-black uppercase tracking-tighter">Admin</span>
+        </button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 環境変数からの取得。エラー回避のためのフォールバック付き
+        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+        const firebaseConfig = JSON.parse(firebaseConfigStr);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'aki-aru-v1';
+
+        // Firebaseが空の場合のダミー防止策
+        if (!firebaseConfig.apiKey) {
+            console.error("Firebase config is missing.");
+            document.getElementById('auth-status').innerText = "CONFIG ERROR";
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let user = null;
+        let userPos = null;
+        let currentStatus = '◯';
+
+        // ページ遷移関数（グローバルに公開）
+        window.showPage = (id) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById('page-' + id);
+            if (target) {
+                target.classList.add('active');
+                document.getElementById('bottom-nav').classList.toggle('hidden', id === 'landing' || id === 'owner-apply');
+                window.scrollTo(0,0);
+            }
+        };
+
+        // GPS取得
+        window.requestLocationAndStart = () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                        document.getElementById('gps-status').innerText = "GPS ACTIVE";
+                        showPage('user-main');
+                    },
+                    (err) => {
+                        console.warn(err);
+                        document.getElementById('gps-status').innerText = "GPS BLOCKED";
+                        showPage('user-main');
+                    }
+                );
+            } else {
+                showPage('user-main');
+            }
+        };
+
+        // 距離計算 (km/m)
+        function getDistanceText(lat1, lon1, lat2, lon2) {
+            if (!lat1 || !lon1 || !lat2 || !lon2) return "--m";
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const d = R * c;
+            return d < 1 ? Math.round(d * 1000) + "m" : d.toFixed(1) + "km";
+        }
+
+        // 店舗リアルタイム同期
+        function startSync() {
+            const shopsRef = collection(db, 'artifacts', appId, 'public', 'data', 'shops');
+            onSnapshot(shopsRef, (snapshot) => {
+                const container = document.getElementById('shop-container');
+                if (snapshot.empty) {
+                    container.innerHTML = '<p class="text-center text-zinc-600 italic py-20 uppercase font-black text-[10px]">No shops active in this area.</p>';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const dist = userPos ? getDistanceText(userPos.lat, userPos.lng, data.lat, data.lng) : "--m";
+                    const colors = {'◯': 'bg-green-500', '△': 'bg-orange-500', '✖︎': 'bg-red-500'};
+                    
+                    container.innerHTML += `
+                        <div class="bg-zinc-900 rounded-[40px] p-7 border border-white/5 shadow-2xl active:scale-[0.98] transition-all" onclick="openGoogleMap('${data.address}')">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <h4 class="text-3xl font-black italic uppercase tracking-tighter">${data.name}</h4>
+                                    <p class="text-[10px] font-black text-zinc-500 uppercase mt-2 italic tracking-widest">${dist} AWAY • ${data.category || 'RESTAURANT'}</p>
+                                </div>
+                                <div class="w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl text-black ${colors[data.status] || 'bg-zinc-700'} shadow-lg shadow-black/50">${data.status}</div>
+                            </div>
+                            <div class="bg-black/40 p-5 rounded-[25px] italic text-[13px] font-bold border border-white/5 text-orange-100 mb-5 leading-relaxed shadow-inner">
+                                「${data.shout}」
+                            </div>
+                            <div class="flex justify-between items-center text-[9px] font-black text-zinc-600 italic uppercase tracking-[0.2em]">
+                                <span><i class="fas fa-location-arrow mr-1"></i> Tap to Navigate</span>
+                                <span class="text-orange-600"><i class="fas fa-check-circle mr-1"></i>Verified</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }, (error) => {
+                console.error("Firestore Error:", error);
+                document.getElementById('shop-container').innerHTML = '<p class="text-center text-red-500 py-10">Sync Error</p>';
+            });
+        }
+
+        // 店主更新
+        window.updateStatus = (s) => {
+            currentStatus = s;
+            const ids = {'◯': 'btn-ok', '△': 'btn-few', '✖︎': 'btn-full'};
+            const activeColor = s === '◯' ? 'bg-green-500' : (s === '△' ? 'bg-orange-500' : 'bg-red-500');
+            
+            ['btn-ok', 'btn-few', 'btn-full'].forEach(id => {
+                const b = document.getElementById(id);
+                b.className = 'h-24 rounded-[30px] bg-zinc-800 text-zinc-600 text-4xl font-black transition-all';
+            });
+            
+            const activeBtn = document.getElementById(ids[s]);
+            activeBtn.className = `h-24 rounded-[30px] ${activeColor} text-black text-4xl font-black status-btn-active shadow-lg shadow-black/40`;
+        };
+
+        window.saveOwnerUpdate = async () => {
+            if (!user) return alert("認証中...");
+            const shout = document.getElementById('owner-shout-input').value || "お待ちしております！";
+            const btn = document.getElementById('update-btn');
+            btn.innerText = "UPDATING...";
+            btn.disabled = true;
+            
+            try {
+                // 店舗IDを固定（デモ用）
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'shops', 'nagano_test_shop'), {
+                    name: "テスト店舗 長野",
+                    status: currentStatus,
+                    shout: shout,
+                    category: "居酒屋/BAR",
+                    address: "長野県長野市鶴賀",
+                    lat: 36.6485,
+                    lng: 138.1942,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+                btn.innerText = "SUCCESS!";
+                setTimeout(() => { btn.innerText = "状況をリアルタイム更新"; btn.disabled = false; }, 2000);
+            } catch (e) {
+                console.error(e);
+                btn.innerText = "FAILED";
+                btn.disabled = false;
+            }
+        };
+
+        window.openGoogleMap = (addr) => {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank');
+        };
+
+        // プレビュー表示
+        window.handleFileSelect = (input, type) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById('preview-' + type);
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                    input.parentElement.classList.add('border-orange-600');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        window.submitApplication = () => {
+            const name = document.getElementById('reg-shop-name').value;
+            if(!name) return alert("店舗名を入力してください");
+            alert(name + "様の出店申請を受付。審査開始します。");
+            showPage('landing');
+        };
+
+        // 認証フロー
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth Failed", err);
+            }
+        };
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (u) {
+                document.getElementById('auth-status').innerText = "LIVE ACTIVE";
+                startSync();
+            } else {
+                initAuth();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
